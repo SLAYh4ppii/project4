@@ -7,7 +7,7 @@ import { DownOutlined } from "@ant-design/icons";
 
 export default function Home() {
   return (
-    <div className={styles.container} {...listingStyles}>
+    <div className={styles.container}>
       <Head>
         <title>Home</title>
         <link rel="icon" href="/favicon.png" />
@@ -45,9 +45,7 @@ export default function Home() {
               interdum hendrerit pulvinar. Cras accumsan imperdiet augue in
               ornare. Ut ac ex eu leo aliquet porttitor ac id ligula.
             </p>
-            <p
-              className={`${listingStyles.primary} ${listingStyles.margin_bottom}`}
-            >
+            <p className={`${listingStyles.primary} ${listingStyles.margin_bottom}`}>
               Nulla pellentesque lorem turpis, in rhoncus urna euismod sit amet.
               Aenean pharetra justo felis, quis congue dui faucibus non. Nulla
               blandit lacinia dolor, sit amet mattis massa fermentum ac.in.
@@ -59,9 +57,7 @@ export default function Home() {
             <h2>Our Mission</h2>
           </Col>
           <Col xs={{ span: 20 }} lg={{ span: 8 }}>
-            <p
-              className={`${listingStyles.mission} ${listingStyles.secondary}`}
-            >
+            <p className={`${listingStyles.mission} ${listingStyles.secondary}`}>
               Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed
               interdum hendrerit pulvinar. Cras accumsan imperdiet augue in
               ornare.

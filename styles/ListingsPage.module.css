@@ -42,7 +42,7 @@
   color: #141414;
 }
 
-.listItem {
+.list_item {
   font-size: 1rem;
   color: #141414;
 }
@@ -60,15 +60,15 @@
   color: #141414;
 }
 
-.primaryBg {
+.primary_bg {
   background-color: #ffffff;
 }
 
-.secondaryBg {
+.secondary_b {
   background-color: #141414;
 }
 
-.marginBottom {
+.margin_bottom {
   margin-bottom: 0;
 }
 
@@ -98,7 +98,7 @@
   background-color: #ffffff;
 }
 
-.buttonSecondary {
+.button_s {
   display: inline-block;
   padding: 0.35em 1.2em;
   border: 0.1em solid #141414;
@@ -114,7 +114,7 @@
   scale: 2;
 }
 
-.buttonSecondary:hover {
+.button_s:hover {
   color: #ffffff;
   background-color: #141414;
 }
@@ -127,7 +127,7 @@
 
 @media all and (max-width: 30em) {
   .button,
-  .buttonSecondary {
+  .button_s {
     display: block;
     margin: 0.4em auto;
   }
