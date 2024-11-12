@@ -37,6 +37,7 @@ interface ApplicantFormData {
 }
 
 const normFile = (e: any) => {
+  console.log('[Upload] Normalizing file:', e);
   if (Array.isArray(e)) {
     return e;
   }
@@ -47,12 +48,30 @@ export default function InsertApplicantModal({ visible, close }: InsertApplicant
   const [form] = Form.useForm<ApplicantFormData>();
 
   const { data: jobs, error } = useSWR<Job[]>('/api/jobs', async (url) => {
+    console.log('[Jobs SWR] Fetching jobs');
     const res = await fetch(url);
-    return res.json();
+    const data = await res.json();
+    console.log('[Jobs SWR] Jobs fetched:', data.length);
+    return data;
   });
 
   async function handleSubmit(values: ApplicantFormData) {
     try {
+      console.log('[Submit] Form values:', {
+        ...values,
+        cv: values.cv ? values.cv.map(f => ({ 
+          name: f.name,
+          status: f.status,
+          response: f.response 
+        })) : 'Missing'
+      });
+
+      // Ensure CV is uploaded and completed
+      if (!values.cv?.[0]?.response?.message) {
+        message.error('Please upload a CV file first');
+        return;
+      }
+
       const response = await fetch('/api/applicants', {
         method: 'POST',
         headers: {
@@ -62,8 +81,10 @@ export default function InsertApplicantModal({ visible, close }: InsertApplicant
       });
 
       const data = await response.json();
+      console.log('[Submit] Response:', data);
 
       if (data.error) {
+        console.error('[Submit] Error:', data.error);
         message.error(data.error);
         return;
       }
@@ -72,11 +93,18 @@ export default function InsertApplicantModal({ visible, close }: InsertApplicant
       form.resetFields();
       close();
     } catch (error) {
+      console.error('[Submit] Error:', error);
       message.error('Failed to add applicant');
     }
   }
 
   const beforeUpload = (file: File) => {
+    console.log('[Upload] Validating file:', {
+      name: file.name,
+      type: file.type,
+      size: file.size
+    });
+
     const isPDF = file.type === 'application/pdf';
     if (!isPDF) {
       message.error('You can only upload PDF files!');
@@ -88,7 +116,11 @@ export default function InsertApplicantModal({ visible, close }: InsertApplicant
     return isPDF && isLt10M;
   };
 
-  if (error) return <div>Failed to load</div>;
+  if (error) {
+    console.error('[Jobs SWR] Error:', error);
+    return <div>Failed to load</div>;
+  }
+  
   if (!jobs) {
     return (
       <div className={homeStyle.container}>
@@ -144,6 +176,12 @@ export default function InsertApplicantModal({ visible, close }: InsertApplicant
             beforeUpload={beforeUpload}
             maxCount={1}
             onChange={({ file }) => {
+              console.log('[Upload] File status changed:', {
+                name: file.name,
+                status: file.status,
+                response: file.response
+              });
+              
               if (file.status === 'done') {
                 message.success(`${file.name} uploaded successfully`);
               } else if (file.status === 'error') {
