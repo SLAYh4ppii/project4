@@ -48,50 +48,37 @@ export default function ViewApplicantModal({ visible, data, close, pipeline }: V
   }
 
   async function downloadCV() {
+    const loadingKey = 'cvDownload';
     try {
-      console.log('[CV Download] Starting download process');
-      console.log('[CV Download] CV ID:', data.cv);
-      
       if (!data.cv) {
-        console.log('[CV Download] No CV ID found');
         message.error('No CV file available');
         return;
       }
 
-      message.loading({ content: 'Downloading CV...', key: 'cvDownload' });
+      message.loading({ content: 'Downloading CV...', key: loadingKey });
 
-      console.log('[CV Download] Fetching CV from API');
-      const response = await fetch(`/api/cv/${encodeURIComponent(data.cv)}`);
-      console.log('[CV Download] API Response status:', response.status);
+      const response = await fetch(`/api/cv/${data.cv}`);
       
       if (!response.ok) {
-        console.log('[CV Download] API Response not OK:', {
-          status: response.status,
-          statusText: response.statusText
-        });
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
-      console.log('[CV Download] Converting response to blob');
       const blob = await response.blob();
-      console.log('[CV Download] Blob size:', blob.size);
-      console.log('[CV Download] Blob type:', blob.type);
-
+      
       if (blob.size === 0) {
-        console.log('[CV Download] Empty blob received');
         throw new Error('Received empty file');
       }
 
       const filename = `${data.name.replace(/[^a-zA-Z0-9]/g, '_')}_CV.pdf`;
-      console.log('[CV Download] Generated filename:', filename);
-      
-      console.log('[CV Download] Initiating file save');
       saveAs(blob, filename);
-      console.log('[CV Download] File save initiated');
-
-      message.success({ content: 'CV downloaded successfully', key: 'cvDownload' });
+      
+      message.success({ 
+        content: 'CV downloaded successfully', 
+        key: loadingKey 
+      });
     } catch (error) {
-      console.error('[CV Download] Error details:', {
+      console.error('CV Download Error:', {
         error: error instanceof Error ? error.message : 'Unknown error',
         cvId: data.cv,
         applicantId: data._id,
@@ -99,8 +86,8 @@ export default function ViewApplicantModal({ visible, data, close, pipeline }: V
       });
       
       message.error({ 
-        content: 'Failed to download CV. Please try again later.', 
-        key: 'cvDownload' 
+        content: error instanceof Error ? error.message : 'Failed to download CV. Please try again later.',
+        key: loadingKey
       });
     }
   }
@@ -145,7 +132,7 @@ export default function ViewApplicantModal({ visible, data, close, pipeline }: V
           <Descriptions.Item label="CV">
             <Button 
               type="link" 
-              onClick={downloadCV} 
+              onClick={downloadCV}
               style={{ margin: 0, padding: 0 }}
               disabled={!data.cv}
             >
