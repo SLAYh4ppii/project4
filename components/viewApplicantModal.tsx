@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
-import { Modal, Descriptions, Form, Input, Button, Rate, Select } from 'antd';
-import { saveAs } from 'file-saver';
+import { Modal, Descriptions, Form, Input, Button, Rate, Select, message } from 'antd';
 import { Applicant } from '@/types';
 
 interface ViewApplicantModalProps {
@@ -24,27 +23,48 @@ export default function ViewApplicantModal({ visible, data, close, pipeline }: V
   }, [data, form]);
 
   async function handleSubmit(values: ApplicantFormData) {
-    await fetch('/api/applicants', {
-      method: 'PUT',
-      body: JSON.stringify({ ...values, id: data._id }),
-    });
-    close();
+    try {
+      await fetch('/api/applicants', {
+        method: 'PUT',
+        body: JSON.stringify({ ...values, id: data._id }),
+      });
+      close();
+    } catch (error) {
+      message.error('Failed to update applicant');
+    }
   }
 
   async function deleteApplicant() {
-    await fetch('/api/applicants', {
-      method: 'DELETE',
-      body: JSON.stringify(data._id),
-    });
-    close();
+    try {
+      await fetch('/api/applicants', {
+        method: 'DELETE',
+        body: JSON.stringify(data._id),
+      });
+      close();
+    } catch (error) {
+      message.error('Failed to delete applicant');
+    }
   }
 
   async function downloadCV() {
-    const res = await fetch(`/api/cv/${data.cv}`);
-    const resJson = await res.json();
-    const arr = new Uint8Array(resJson.file.data);
-    const blob = new Blob([arr], { type: 'application/pdf' });
-    saveAs(blob, 'cv.pdf');
+    try {
+      const response = await fetch(`/api/cv/${data.cv}`);
+      if (!response.ok) {
+        throw new Error('Failed to download CV');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'cv.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      message.error('Failed to download CV');
+    }
   }
 
   return (

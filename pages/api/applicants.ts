@@ -32,20 +32,15 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
             name: data.name,
             email: data.email,
             listing: data.listing,
-            cvData: data.cv ? 'Present' : 'Missing'
+            cv: data.cv ? 'Present' : 'Missing'
           });
 
           const listing = data.listing;
-
-          let cvId = null;
-          if (data.cv?.[0]?.response?.message) {
-            cvId = data.cv[0].response.message;
-            console.log('[Applicants API] CV ID extracted:', cvId);
-          }
+          const cvId = data.cv;
 
           if (!cvId) {
-            console.log('[Applicants API] CV validation failed');
-            res.status(400).json({ error: 'PDF file is required' });
+            console.log('[Applicants API] CV validation failed - Missing CV ID');
+            res.status(400).json({ error: 'CV upload failed or is missing' });
             return;
           }
 
@@ -62,7 +57,7 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
             cv: cvId
           };
 
-          console.log('[Applicants API] Creating applicant record:', applicantData);
+          console.log('[Applicants API] Creating applicant record');
           const result = await req.db.collection('applicants').insertOne(applicantData);
           console.log('[Applicants API] Applicant created:', result.insertedId.toString());
           
