@@ -15,6 +15,7 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
           const applicants = await req.db.collection('applicants').find().toArray();
           res.json(applicants);
         } catch (error) {
+          console.error('GET applicants error:', error);
           res.status(500).json({ error: 'Failed to fetch applicants' });
         }
         break;
@@ -25,23 +26,38 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
           const listing = data.listing;
           delete data.listing;
           
+          // Ensure cv is properly handled
+          const cvId = data.cv && data.cv[0] && data.cv[0].response ? 
+            data.cv[0].response.message : 
+            (typeof data.cv === 'string' ? data.cv : null);
+
+          if (!cvId) {
+            throw new Error('Invalid CV data');
+          }
+
           const applicantData: Partial<Applicant> = {
-            ...data,
+            name: data.name,
+            email: data.email,
+            phone: data.phone,
+            linkedin: data.linkedin,
+            website: data.website,
+            introduction: data.introduction,
             stage: 'Applied',
             notes: '',
             rating: 0,
-            cv: new ObjectId(data.cv[0].response.message),
+            cv: cvId
           };
 
           const result = await req.db.collection('applicants').insertOne(applicantData);
           
           await req.db.collection('jobs').updateOne(
             { _id: new ObjectId(listing) },
-            { $push: { applicants: result.insertedId } }
+            { $push: { applicants: result.insertedId.toString() } }
           );
           
-          res.json({ message: 'ok' });
+          res.json({ message: 'ok', id: result.insertedId });
         } catch (error) {
+          console.error('POST applicant error:', error);
           res.status(500).json({ error: 'Failed to create applicant' });
         }
         break;
@@ -61,6 +77,7 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
           );
           res.json({ message: 'ok' });
         } catch (error) {
+          console.error('PUT applicant error:', error);
           res.status(500).json({ error: 'Failed to update applicant' });
         }
         break;
@@ -71,10 +88,11 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
           await req.db.collection('applicants').deleteOne({ _id: new ObjectId(id) });
           await req.db.collection('jobs').updateMany(
             {},
-            { $pull: { applicants: new ObjectId(id) } }
+            { $pull: { applicants: id } }
           );
           res.json({ message: 'ok' });
         } catch (error) {
+          console.error('DELETE applicant error:', error);
           res.status(500).json({ error: 'Failed to delete applicant' });
         }
         break;

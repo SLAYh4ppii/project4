@@ -1,7 +1,7 @@
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import styles from "../../styles/Home.module.css";
 import listingStyles from "../../styles/ListingsPage.module.css";
 import {
@@ -65,6 +65,8 @@ function JobDetails() {
       });
       form.resetFields();
       message.success("Your application has been submitted");
+      // Trigger a refresh of the applicants list
+      mutate(`/api/jobs/${id}`);
     } catch (error) {
       message.error("Failed to submit application");
     }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import useSWR, { mutate } from 'swr';
 import { List, Spin, Card, Tag, Row, Col, Rate } from 'antd';
 import ViewApplicantModal from './viewApplicantModal';
@@ -10,13 +10,24 @@ interface ApplicantViewProps {
 }
 
 export default function ApplicantView({ data, pipeline }: ApplicantViewProps) {
-  const { data: applicants, error } = useSWR<Applicant[]>(`/api/jobs/${data}`, async (url) => {
-    const res = await fetch(url);
-    return res.json();
-  });
+  const { data: applicants, error } = useSWR<Applicant[]>(
+    `/api/jobs/${data}`,
+    async (url) => {
+      const res = await fetch(url);
+      return res.json();
+    },
+    {
+      refreshInterval: 5000, // Refresh every 5 seconds
+    }
+  );
 
   const [modalVisible, setModalVisible] = useState(false);
   const [applicantData, setApplicantData] = useState<Applicant | null>(null);
+
+  // Refresh data when the selected job changes
+  useEffect(() => {
+    mutate(`/api/jobs/${data}`);
+  }, [data]);
 
   function setColor(stage: string): string {
     switch (stage) {
@@ -26,6 +37,8 @@ export default function ApplicantView({ data, pipeline }: ApplicantViewProps) {
         return 'gold';
       case 'Offer':
         return 'green';
+      case 'Rejected':
+        return 'red';
       default:
         return 'blue';
     }

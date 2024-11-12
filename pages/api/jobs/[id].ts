@@ -28,13 +28,23 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
       }
 
       const applicants = await Promise.all(
-        job.applicants.map(async (applicantId: string) => 
-          await req.db.collection('applicants').findOne({ _id: new ObjectId(applicantId) })
-        )
+        (job.applicants || []).map(async (applicantId: string) => {
+          try {
+            return await req.db.collection('applicants').findOne({ 
+              _id: new ObjectId(applicantId)
+            });
+          } catch (error) {
+            console.error(`Error fetching applicant ${applicantId}:`, error);
+            return null;
+          }
+        })
       );
 
-      res.json(applicants);
+      // Filter out any null values from failed lookups
+      const validApplicants = applicants.filter(a => a !== null);
+      res.json(validApplicants);
     } catch (error) {
+      console.error('Error fetching job applicants:', error);
       res.status(500).json({ error: 'Failed to fetch job applicants' });
     }
   });
