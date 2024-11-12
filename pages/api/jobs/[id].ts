@@ -21,31 +21,40 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
 
   await database(req, res, async () => {
     try {
-      const job = await req.db.collection('jobs').findOne({ _id: new ObjectId(id) });
+      // First get the job to get the applicants array
+      const job = await req.db.collection('jobs').findOne({ 
+        _id: new ObjectId(id) 
+      });
+
       if (!job) {
-        res.status(404).json({ error: 'Job not found' });
-        return;
+        return res.status(404).json([]);
       }
 
-      const applicants = await Promise.all(
-        (job.applicants || []).map(async (applicantId: string) => {
-          try {
-            return await req.db.collection('applicants').findOne({ 
-              _id: new ObjectId(applicantId)
-            });
-          } catch (error) {
-            console.error(`Error fetching applicant ${applicantId}:`, error);
-            return null;
-          }
-        })
-      );
+      // If there are no applicants, return empty array
+      if (!job.applicants || !Array.isArray(job.applicants) || job.applicants.length === 0) {
+        return res.json([]);
+      }
 
-      // Filter out any null values from failed lookups
-      const validApplicants = applicants.filter(a => a !== null);
-      res.json(validApplicants);
+      // Convert string IDs to ObjectIds for the query
+      const applicantIds = job.applicants
+        .filter((id: string) => ObjectId.isValid(id))
+        .map((id: string) => new ObjectId(id));
+
+      if (applicantIds.length === 0) {
+        return res.json([]);
+      }
+
+      // Fetch all applicants in a single query
+      const applicants = await req.db.collection('applicants')
+        .find({ 
+          _id: { $in: applicantIds } 
+        })
+        .toArray();
+
+      return res.json(applicants || []);
     } catch (error) {
       console.error('Error fetching job applicants:', error);
-      res.status(500).json({ error: 'Failed to fetch job applicants' });
+      return res.status(500).json([]);
     }
   });
 }

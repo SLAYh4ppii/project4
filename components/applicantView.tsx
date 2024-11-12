@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import useSWR, { mutate } from 'swr';
-import { List, Spin, Card, Tag, Row, Col, Rate } from 'antd';
+import { List, Spin, Card, Tag, Row, Col, Rate, Empty, message } from 'antd';
 import ViewApplicantModal from './viewApplicantModal';
 import { Applicant } from '@/types';
 
@@ -9,15 +9,27 @@ interface ApplicantViewProps {
   pipeline: string[];
 }
 
+const fetcher = async (url: string) => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error('Failed to fetch applicants');
+  }
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+};
+
 export default function ApplicantView({ data, pipeline }: ApplicantViewProps) {
-  const { data: applicants, error } = useSWR<Applicant[]>(
-    `/api/jobs/${data}`,
-    async (url) => {
-      const res = await fetch(url);
-      return res.json();
-    },
+  const { data: applicants, error, isLoading } = useSWR<Applicant[]>(
+    data ? `/api/jobs/${data}` : null,
+    fetcher,
     {
-      refreshInterval: 5000, // Refresh every 5 seconds
+      refreshInterval: 5000,
+      revalidateOnFocus: true,
+      revalidateOnMount: true,
+      onError: (err) => {
+        console.error('Error loading applicants:', err);
+        message.error('Failed to load applicants');
+      }
     }
   );
 
@@ -26,7 +38,9 @@ export default function ApplicantView({ data, pipeline }: ApplicantViewProps) {
 
   // Refresh data when the selected job changes
   useEffect(() => {
-    mutate(`/api/jobs/${data}`);
+    if (data) {
+      mutate(`/api/jobs/${data}`);
+    }
   }, [data]);
 
   function setColor(stage: string): string {
@@ -44,16 +58,41 @@ export default function ApplicantView({ data, pipeline }: ApplicantViewProps) {
     }
   }
 
-  if (error) return <div>Failed to load</div>;
-  if (!applicants) {
+  if (error) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <Empty
+          description="Failed to load applicants. Please try again later."
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+        />
+      </div>
+    );
+  }
+
+  if (isLoading) {
     return (
       <div style={{
         display: 'flex',
         justifyContent: 'center',
         height: '100%',
         alignItems: 'center',
+        padding: '2rem'
       }}>
         <Spin size="large" />
+      </div>
+    );
+  }
+
+  if (!applicants || applicants.length === 0) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        height: '100%',
+        alignItems: 'center',
+        padding: '2rem'
+      }}>
+        <Empty description="No applications yet" />
       </div>
     );
   }
@@ -97,7 +136,7 @@ export default function ApplicantView({ data, pipeline }: ApplicantViewProps) {
                   <Rate value={item.rating} disabled />
                 </Col>
                 <Col span={12} style={{ display: 'flex', alignItems: 'center' }}>
-                  {item.introduction}
+                  {item.introduction || 'No introduction provided'}
                 </Col>
               </Row>
             </Card>

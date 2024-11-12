@@ -25,14 +25,20 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
           const data = JSON.parse(req.body);
           const listing = data.listing;
           delete data.listing;
-          
-          // Ensure cv is properly handled
-          const cvId = data.cv && data.cv[0] && data.cv[0].response ? 
-            data.cv[0].response.message : 
-            (typeof data.cv === 'string' ? data.cv : null);
 
+          // Handle CV data from form upload
+          let cvId = null;
+          if (data.cv && Array.isArray(data.cv) && data.cv.length > 0) {
+            const cvFile = data.cv[0];
+            if (cvFile.response && cvFile.response.message) {
+              cvId = cvFile.response.message;
+            }
+          }
+
+          // Validate CV
           if (!cvId) {
-            throw new Error('Invalid CV data');
+            res.status(400).json({ error: 'PDF file is required' });
+            return;
           }
 
           const applicantData: Partial<Applicant> = {
