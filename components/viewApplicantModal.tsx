@@ -31,6 +31,7 @@ export default function ViewApplicantModal({ visible, data, close, pipeline }: V
       });
       close();
     } catch (error) {
+      console.error('Failed to update applicant:', error);
       message.error('Failed to update applicant');
     }
   }
@@ -43,42 +44,83 @@ export default function ViewApplicantModal({ visible, data, close, pipeline }: V
       });
       close();
     } catch (error) {
+      console.error('Failed to delete applicant:', error);
       message.error('Failed to delete applicant');
     }
   }
 
   async function downloadCV() {
     const loadingKey = 'cvDownload';
+    console.log('[CV Download] Starting download for:', {
+      applicantId: data._id,
+      applicantName: data.name,
+      cvId: data.cv
+    });
+
     try {
       if (!data.cv) {
+        console.log('[CV Download] Error: No CV ID available');
         message.error('No CV file available');
         return;
       }
 
       message.loading({ content: 'Downloading CV...', key: loadingKey });
+      console.log('[CV Download] Fetching CV file...');
 
-      const response = await fetch(`/api/cv/${data.cv}`);
+      // Ensure cvId is a string
+      const cvId = data.cv.toString();
+      console.log('[CV Download] Using CV ID:', cvId);
+
+      const response = await fetch(`/api/cv/${cvId}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/pdf',
+        },
+      });
       
+      console.log('[CV Download] Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        contentType: response.headers.get('content-type'),
+        contentLength: response.headers.get('content-length')
+      });
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        throw new Error(`Failed to download CV: ${response.statusText}`);
       }
 
+      const contentType = response.headers.get('content-type');
+      console.log('[CV Download] Validating content type:', contentType);
+
+      if (!contentType || !contentType.includes('application/pdf')) {
+        throw new Error('Invalid file format received');
+      }
+
+      console.log('[CV Download] Converting response to blob');
       const blob = await response.blob();
       
+      console.log('[CV Download] Blob created:', {
+        size: blob.size,
+        type: blob.type
+      });
+
       if (blob.size === 0) {
         throw new Error('Received empty file');
       }
 
       const filename = `${data.name.replace(/[^a-zA-Z0-9]/g, '_')}_CV.pdf`;
+      console.log('[CV Download] Saving file as:', filename);
+      
       saveAs(blob, filename);
       
+      console.log('[CV Download] Download completed successfully');
       message.success({ 
         content: 'CV downloaded successfully', 
-        key: loadingKey 
+        key: loadingKey,
+        duration: 2 
       });
     } catch (error) {
-      console.error('CV Download Error:', {
+      console.error('[CV Download] Error:', {
         error: error instanceof Error ? error.message : 'Unknown error',
         cvId: data.cv,
         applicantId: data._id,
@@ -86,8 +128,9 @@ export default function ViewApplicantModal({ visible, data, close, pipeline }: V
       });
       
       message.error({ 
-        content: error instanceof Error ? error.message : 'Failed to download CV. Please try again later.',
-        key: loadingKey
+        content: 'Failed to download CV. Please try again.',
+        key: loadingKey,
+        duration: 3
       });
     }
   }
