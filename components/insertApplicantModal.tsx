@@ -59,6 +59,9 @@ export default function InsertApplicantModal({ visible, close }: InsertApplicant
         return;
       }
 
+      // Ensure CV ID is a string
+      const cvId = cvFile.response.message.toString();
+
       const response = await fetch('/api/applicants', {
         method: 'POST',
         headers: {
@@ -66,7 +69,7 @@ export default function InsertApplicantModal({ visible, close }: InsertApplicant
         },
         body: JSON.stringify({
           ...values,
-          cv: cvFile.response.message
+          cv: cvId
         }),
       });
 

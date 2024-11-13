@@ -67,7 +67,6 @@ export default function ViewApplicantModal({ visible, data, close, pipeline }: V
       message.loading({ content: 'Downloading CV...', key: loadingKey });
       console.log('[CV Download] Fetching CV file...');
 
-      // Ensure cvId is a string
       const cvId = data.cv.toString();
       console.log('[CV Download] Using CV ID:', cvId);
 

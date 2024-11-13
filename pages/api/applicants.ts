@@ -44,6 +44,7 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
             return;
           }
 
+          // Ensure CV ID is stored as a string
           const applicantData: Partial<Applicant> = {
             name: data.name,
             email: data.email,
@@ -54,7 +55,7 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
             stage: 'Applied',
             notes: '',
             rating: 0,
-            cv: cvId
+            cv: cvId.toString()
           };
 
           console.log('[Applicants API] Creating applicant record');
@@ -108,6 +109,19 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
           console.log('[Applicants API] Deleting applicant');
           const id = JSON.parse(req.body);
           console.log('[Applicants API] Delete ID:', id);
+
+          // Get the applicant to find the CV ID
+          const applicant = await req.db.collection('applicants').findOne({ _id: new ObjectId(id) });
+          if (applicant && applicant.cv) {
+            // Delete the CV file from GridFS
+            try {
+              const bucket = new GridFSBucket(req.db, { bucketName: 'cvs' });
+              await bucket.delete(new ObjectId(applicant.cv));
+              console.log('[Applicants API] CV file deleted');
+            } catch (error) {
+              console.error('[Applicants API] Failed to delete CV file:', error);
+            }
+          }
 
           await req.db.collection('applicants').deleteOne({ _id: new ObjectId(id) });
           console.log('[Applicants API] Applicant deleted');

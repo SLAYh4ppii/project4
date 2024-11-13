@@ -26,13 +26,23 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
     return;
   }
 
+  // Clean and validate the ID
+  const cleanId = id.replace(/['"{}[\]]/g, '').trim();
+  console.log('[CV Download API] Cleaned ID:', cleanId);
+
+  if (!cleanId) {
+    console.log('[CV Download API] Error: Empty ID after cleaning');
+    res.status(400).json({ error: 'Invalid ID format' });
+    return;
+  }
+
   await database(req, res, async () => {
     let downloadStream;
     try {
       console.log('[CV Download API] Database connection established');
 
-      if (!ObjectId.isValid(id)) {
-        console.log('[CV Download API] Error: Invalid ObjectId format:', id);
+      if (!ObjectId.isValid(cleanId)) {
+        console.log('[CV Download API] Error: Invalid ObjectId format:', cleanId);
         res.status(400).json({ error: 'Invalid ID format' });
         return;
       }
@@ -44,7 +54,7 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
 
       // First check if the file exists
       console.log('[CV Download API] Checking if file exists in GridFS');
-      const file = await req.db.collection('cvs.files').findOne({ _id: new ObjectId(id) });
+      const file = await req.db.collection('cvs.files').findOne({ _id: new ObjectId(cleanId) });
       
       if (!file) {
         console.log('[CV Download API] Error: File not found in GridFS');
@@ -61,7 +71,7 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
       });
 
       console.log('[CV Download API] Opening download stream');
-      downloadStream = bucket.openDownloadStream(new ObjectId(id));
+      downloadStream = bucket.openDownloadStream(new ObjectId(cleanId));
 
       // Set response headers
       const headers = {
