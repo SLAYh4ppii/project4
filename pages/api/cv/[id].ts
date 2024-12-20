@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getFilePath, streamFileToResponse } from '@/utils/files';
-import { validateFileId } from '@/utils/validation';
+import { validateAndSanitizeCVId } from '@/utils/cvHandling';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   console.log('\n[CV Download API] ====== Start Request ======');
@@ -15,18 +15,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // Validate and get file ID
-    const fileId = validateFileId(req);
-    console.log('[CV Download API] Validated file ID:', fileId);
+    const validation = validateAndSanitizeCVId(req.query.id);
+    
+    if (!validation.isValid || !validation.fileId) {
+      throw new Error(validation.error || 'Invalid file ID');
+    }
+
+    console.log('[CV Download API] Validated file ID:', validation.fileId);
 
     // Get file path and stats
-    const { path: filePath, stats } = await getFilePath(fileId);
+    const { path: filePath, stats } = await getFilePath(validation.fileId);
     console.log('[CV Download API] File found:', {
       path: filePath,
       size: stats.size
     });
 
     // Stream file to response
-    await streamFileToResponse(filePath, fileId, stats, res);
+    await streamFileToResponse(filePath, validation.fileId, stats, res);
     console.log('[CV Download API] ====== End Request Success ======\n');
   } catch (error) {
     console.error('[CV Download API] ====== Error ======');

@@ -10,9 +10,10 @@ export function validateFileId(req: NextApiRequest): string {
     throw new Error('Invalid file ID');
   }
 
-  // Validate file ID format (should be UUID with extension)
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(pdf|PDF)$/i;
-  if (!uuidRegex.test(fileId)) {
+  // Basic validation to ensure the file ID is safe
+  // Allow alphanumeric characters, hyphens, underscores and .pdf extension
+  const safeFileRegex = /^[a-zA-Z0-9_-]+\.pdf$/i;
+  if (!safeFileRegex.test(fileId)) {
     throw new Error('Invalid file ID format');
   }
 
