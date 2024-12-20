@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import useSWR, { mutate } from 'swr';
 import { List, Spin, Card, Tag, Row, Col, Rate, Empty, message } from 'antd';
 import ViewApplicantModal from './viewApplicantModal';
@@ -37,7 +37,7 @@ export default function ApplicantView({ data, pipeline }: ApplicantViewProps) {
   const [applicantData, setApplicantData] = useState<Applicant | null>(null);
 
   // Refresh data when the selected job changes
-  useEffect(() => {
+  React.useEffect(() => {
     if (data) {
       mutate(`/api/jobs/${data}`);
     }
@@ -99,7 +99,7 @@ export default function ApplicantView({ data, pipeline }: ApplicantViewProps) {
 
   return (
     <div>
-      {applicantData && (
+      {applicantData && modalVisible && (
         <ViewApplicantModal
           visible={modalVisible}
           data={applicantData}

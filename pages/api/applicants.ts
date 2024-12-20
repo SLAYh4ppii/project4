@@ -2,10 +2,14 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { ObjectId } from 'mongodb';
 import database from '@/middleware/database';
 import { Applicant } from '@/types';
+import path from 'path';
+import fs from 'fs/promises';
 
 interface ExtendedRequest extends NextApiRequest {
   db: any;
 }
+
+const uploadDir = path.join(process.cwd(), 'uploads');
 
 export default async function handler(req: ExtendedRequest, res: NextApiResponse) {
   console.log('[Applicants API] Request received:', { method: req.method });
@@ -44,7 +48,6 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
             return;
           }
 
-          // Ensure CV ID is stored as a string
           const applicantData: Partial<Applicant> = {
             name: data.name,
             email: data.email,
@@ -110,13 +113,13 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
           const id = JSON.parse(req.body);
           console.log('[Applicants API] Delete ID:', id);
 
-          // Get the applicant to find the CV ID
+          // Get the applicant to find the CV filename
           const applicant = await req.db.collection('applicants').findOne({ _id: new ObjectId(id) });
           if (applicant && applicant.cv) {
-            // Delete the CV file from GridFS
+            // Delete the CV file from local storage
             try {
-              const bucket = new GridFSBucket(req.db, { bucketName: 'cvs' });
-              await bucket.delete(new ObjectId(applicant.cv));
+              const filePath = path.join(uploadDir, applicant.cv);
+              await fs.unlink(filePath);
               console.log('[Applicants API] CV file deleted');
             } catch (error) {
               console.error('[Applicants API] Failed to delete CV file:', error);
