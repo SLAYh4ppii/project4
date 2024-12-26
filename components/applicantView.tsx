@@ -9,39 +9,20 @@ interface ApplicantViewProps {
   pipeline: string[];
 }
 
-const fetcher = async (url: string) => {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error('Failed to fetch applicants');
-  }
-  const data = await response.json();
-  return Array.isArray(data) ? data : [];
-};
-
 export default function ApplicantView({ data, pipeline }: ApplicantViewProps) {
-  const { data: applicants, error, isLoading } = useSWR<Applicant[]>(
-    data ? `/api/jobs/${data}` : null,
-    fetcher,
-    {
-      refreshInterval: 5000,
-      revalidateOnFocus: true,
-      revalidateOnMount: true,
-      onError: (err) => {
-        console.error('Error loading applicants:', err);
-        message.error('Failed to load applicants');
-      }
-    }
-  );
-
   const [modalVisible, setModalVisible] = useState(false);
   const [applicantData, setApplicantData] = useState<Applicant | null>(null);
 
-  // Refresh data when the selected job changes
-  React.useEffect(() => {
-    if (data) {
-      mutate(`/api/jobs/${data}`);
+  const { data: applicants, error, isLoading } = useSWR<Applicant[]>(
+    data ? `/api/jobs/${data}/applicants` : null,
+    async (url) => {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch applicants');
+      }
+      return response.json();
     }
-  }, [data]);
+  );
 
   function setColor(stage: string): string {
     switch (stage) {
@@ -74,7 +55,6 @@ export default function ApplicantView({ data, pipeline }: ApplicantViewProps) {
       <div style={{
         display: 'flex',
         justifyContent: 'center',
-        height: '100%',
         alignItems: 'center',
         padding: '2rem'
       }}>
@@ -88,7 +68,6 @@ export default function ApplicantView({ data, pipeline }: ApplicantViewProps) {
       <div style={{
         display: 'flex',
         justifyContent: 'center',
-        height: '100%',
         alignItems: 'center',
         padding: '2rem'
       }}>
@@ -104,7 +83,7 @@ export default function ApplicantView({ data, pipeline }: ApplicantViewProps) {
           visible={modalVisible}
           data={applicantData}
           close={() => {
-            mutate(`/api/jobs/${data}`);
+            mutate(`/api/jobs/${data}/applicants`);
             setModalVisible(false);
           }}
           pipeline={pipeline}

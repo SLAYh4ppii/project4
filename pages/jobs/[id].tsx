@@ -18,6 +18,7 @@ import {
 import ReactMarkdown from 'react-markdown';
 import { Job } from '@/types';
 import type { UploadFile } from 'antd/es/upload/interface';
+import { useState } from 'react';
 
 interface JobApplication {
   name: string;
@@ -27,12 +28,13 @@ interface JobApplication {
   linkedin?: string;
   website?: string;
   introduction?: string;
-  listing?: string;
 }
 
 export default function JobPage() {
   const router = useRouter();
   const { id } = router.query;
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [form] = Form.useForm();
 
   const { data: job, error } = useSWR<Job>(
     id ? `/api/jobListing/${id}` : null
@@ -56,12 +58,40 @@ export default function JobPage() {
 
   const handleSubmit = async (values: JobApplication) => {
     try {
+      setIsSubmitting(true);
+      
+      // First upload the CV if provided
+      let cvFileName = '';
+      if (values.cv?.[0]?.originFileObj) {
+        const formData = new FormData();
+        formData.append('file', values.cv[0].originFileObj);
+        
+        const uploadResponse = await fetch('/api/cv', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (!uploadResponse.ok) {
+          throw new Error('Failed to upload CV');
+        }
+        
+        const uploadData = await uploadResponse.json();
+        cvFileName = uploadData.message;
+      }
+
+      // Then submit the application
+      const applicationData = {
+        ...values,
+        cv: cvFileName,
+        listing: id,
+      };
+
       const response = await fetch('/api/applicants', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ...values, listing: id }),
+        body: JSON.stringify(applicationData),
       });
 
       if (!response.ok) {
@@ -69,9 +99,13 @@ export default function JobPage() {
       }
 
       message.success('Application submitted successfully');
+      form.resetFields();
       router.push('/jobs');
     } catch (error) {
+      console.error('Application submission error:', error);
       message.error('Failed to submit application');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -91,36 +125,49 @@ export default function JobPage() {
             <Divider />
             <ReactMarkdown>{job.description}</ReactMarkdown>
             <Form
+              form={form}
               name="job-application"
               onFinish={handleSubmit}
               layout="vertical"
+              disabled={isSubmitting}
             >
               <Form.Item
                 name="name"
                 label="Name"
-                rules={[{ required: true }]}
+                rules={[{ required: true, message: 'Please enter your name' }]}
               >
                 <Input />
               </Form.Item>
               <Form.Item
                 name="email"
                 label="Email"
-                rules={[{ required: true, type: 'email' }]}
+                rules={[
+                  { required: true, message: 'Please enter your email' },
+                  { type: 'email', message: 'Please enter a valid email' }
+                ]}
               >
                 <Input />
               </Form.Item>
               <Form.Item
                 name="cv"
                 label="CV"
-                rules={[{ required: true }]}
+                rules={[{ required: true, message: 'Please upload your CV' }]}
               >
-                <Upload accept=".pdf">
+                <Upload
+                  accept=".pdf"
+                  maxCount={1}
+                  beforeUpload={() => false}
+                >
                   <Button>Upload CV</Button>
                 </Upload>
               </Form.Item>
               <Form.Item>
-                <Button type="primary" htmlType="submit">
-                  Submit Application
+                <Button 
+                  type="primary" 
+                  htmlType="submit"
+                  loading={isSubmitting}
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit Application'}
                 </Button>
               </Form.Item>
             </Form>

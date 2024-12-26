@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs/promises';
 import { createReadStream } from 'fs';
+import { Stats } from 'fs';
 import { NextApiResponse } from 'next';
 
 export const uploadDir = path.join(process.cwd(), 'uploads');
@@ -22,7 +23,7 @@ export function cleanFileName(fileName: string | string[] | undefined): string {
   return fileName.replace(/['"{}[\]]/g, '').trim();
 }
 
-export async function getFilePath(fileName: string): Promise<{ path: string; stats: fs.Stats }> {
+export async function getFilePath(fileName: string): Promise<{ path: string; stats: Stats }> {
   try {
     const filePath = path.join(uploadDir, fileName);
     console.log('[Files] Checking file:', filePath);
@@ -37,7 +38,7 @@ export async function getFilePath(fileName: string): Promise<{ path: string; sta
 export async function streamFileToResponse(
   filePath: string, 
   fileName: string,
-  stats: fs.Stats,
+  stats: Stats,
   res: NextApiResponse
 ): Promise<void> {
   console.log('[Files] Starting file stream:', {
