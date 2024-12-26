@@ -1,10 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { ObjectId } from 'mongodb';
 import database from '@/middleware/database';
+import { DatabaseConnection } from '@/types/database';
+import { Job } from '@/types';
 
-interface ExtendedRequest extends NextApiRequest {
-  db: any;
-}
+interface ExtendedRequest extends NextApiRequest, DatabaseConnection {}
 
 export default async function handler(req: ExtendedRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -21,7 +21,7 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
 
   await database(req, res, async () => {
     try {
-      const job = await req.db.collection('jobs').findOne({ _id: new ObjectId(id) });
+      const job = await req.db.collection<Job>('jobs').findOne({ _id: new ObjectId(id) });
       if (!job) {
         res.status(404).json({ error: 'Job not found' });
         return;

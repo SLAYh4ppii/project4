@@ -1,5 +1,4 @@
 import { NextApiResponse } from 'next';
-import { MongoClient } from 'mongodb';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { AuthRequest, AuthResponse } from '@/types/api';

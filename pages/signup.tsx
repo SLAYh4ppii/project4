@@ -1,6 +1,4 @@
-import React, { useState } from 'react';
-import Router from 'next/router';
-import cookie from 'js-cookie';
+import { useState } from 'react';
 
 interface SignupFormData {
   username: string;
@@ -8,11 +6,10 @@ interface SignupFormData {
 }
 
 export default function Signup() {
-  const [signupError, setSignupError] = useState('');
   const [formData, setFormData] = useState<SignupFormData>({
     username: '',
     password: ''
   });
 
-  // Rest of the component implementation...
+  return null; // TODO: Implement signup form
 }

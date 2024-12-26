@@ -1,5 +1,4 @@
 import { NextApiResponse } from 'next';
-import { ObjectId } from 'mongodb';
 import database from '@/middleware/database';
 import { ApiRequest } from '@/types/api';
 import { Applicant } from '@/types';
@@ -26,8 +25,11 @@ export default async function handler(
           });
         }
         break;
-
-      // ... rest of the handler implementation
+      default:
+        res.status(405).json({ 
+          success: false, 
+          error: 'Method not allowed' 
+        });
     }
   });
 }
