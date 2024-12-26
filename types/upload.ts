@@ -2,8 +2,8 @@ import { File } from 'formidable';
 
 export interface UploadedFile extends File {
   filepath: string;
-  originalFilename?: string;
-  mimetype?: string;
+  originalFilename: string | null;
+  mimetype: string | null;
 }
 
 export type UploadResponse = {

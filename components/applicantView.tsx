@@ -4,6 +4,7 @@ import { List, Card, Tag, Rate, Button, Typography, Space, Descriptions, message
 import { DownloadOutlined, MailOutlined, PhoneOutlined, LinkedinOutlined, GlobalOutlined } from '@ant-design/icons';
 import { Applicant } from '@/types';
 import ViewApplicantModal from './viewApplicantModal';
+import { downloadCV } from '@/utils/cvDownloader';
 
 const { Text } = Typography;
 
@@ -25,29 +26,31 @@ function setColor(stage: string): string {
 export default function ApplicantView({ data, pipeline }: ApplicantViewProps) {
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
   const { data: applicants, error, mutate } = useSWR<Applicant[]>(
-    `/api/jobs/${data}/applicants`
+    `/api/jobs/${data}/applicants`,
+    async (url: string) => {
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error('Failed to fetch applicants');
+      }
+      return res.json();
+    }
   );
 
-  if (error) return <div>Failed to load applicants</div>;
+  if (error) {
+    console.error('Error loading applicants:', error);
+    return <div>Failed to load applicants</div>;
+  }
+  
   if (!applicants) return <div>Loading...</div>;
+  
   if (applicants.length === 0) return <div>No applications yet</div>;
 
-  const handleDownloadCV = async (cvFileName: string) => {
+  const handleDownloadCV = async (cv: string) => {
     try {
-      const response = await fetch(`/api/cv/${cvFileName}`);
-      if (!response.ok) throw new Error('Failed to download CV');
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = cvFileName;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      console.log('[ApplicantView] Attempting to download CV:', cv);
+      await downloadCV(cv);
     } catch (error) {
-      console.error('Error downloading CV:', error);
+      console.error('[ApplicantView] Download error:', error);
       message.error('Failed to download CV');
     }
   };
@@ -79,12 +82,14 @@ export default function ApplicantView({ data, pipeline }: ApplicantViewProps) {
             }
             extra={
               <Space>
-                <Button 
-                  icon={<DownloadOutlined />}
-                  onClick={() => handleDownloadCV(applicant.cv)}
-                >
-                  Download CV
-                </Button>
+                {applicant.cv && (
+                  <Button 
+                    icon={<DownloadOutlined />}
+                    onClick={() => handleDownloadCV(applicant.cv)}
+                  >
+                    Download CV
+                  </Button>
+                )}
                 <Button 
                   type="primary"
                   onClick={() => setSelectedApplicant(applicant)}
@@ -123,13 +128,6 @@ export default function ApplicantView({ data, pipeline }: ApplicantViewProps) {
               <div style={{ marginTop: 16 }}>
                 <Text strong>Introduction:</Text>
                 <p>{applicant.introduction}</p>
-              </div>
-            )}
-            
-            {applicant.notes && (
-              <div style={{ marginTop: 16 }}>
-                <Text strong>Notes:</Text>
-                <p>{applicant.notes}</p>
               </div>
             )}
           </Card>
