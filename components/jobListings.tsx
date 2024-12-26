@@ -26,8 +26,11 @@ export default function JobListings() {
   const [editJobModalVisible, setEditJobModalVisible] = useState(false);
   const [selectedListing, setSelectedListing] = useState<Job | null>(null);
 
-  const { data: jobs, error } = useSWR<Job[]>('/api/jobs', async (url) => {
+  const { data: jobs, error } = useSWR<Job[]>('/api/jobs', async (url: string) => {
     const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error('Failed to fetch jobs');
+    }
     return res.json();
   });
 

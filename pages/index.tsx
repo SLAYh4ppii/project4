@@ -22,7 +22,21 @@ export default function Home() {
           justify="center"
           align="bottom"
         >
-          {/* Rest of the component implementation... */}
+          <Col span={24} style={{ textAlign: 'center' }}>
+            <Image
+              src="/our-team.png"
+              alt="Our Team"
+              width={500}
+              height={300}
+              priority
+            />
+            <h1 className={`${listingStyles.heading1} ${listingStyles.primary}`}>
+              Simple ATS
+            </h1>
+            <Link href="/jobs" className={listingStyles.button}>
+              View Openings <DownOutlined />
+            </Link>
+          </Col>
         </Row>
       </main>
     </div>
