@@ -12,7 +12,6 @@ import {
   Modal,
 } from 'antd';
 import styles from '@/styles/ATS.module.css';
-import homeStyle from '@/styles/Home.module.css';
 import { PlusOutlined } from '@ant-design/icons';
 import AddJobModal from './addJobModal';
 import EditJobModal from './editJobModal';

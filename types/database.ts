@@ -1,10 +1,11 @@
 import { Collection, Db, MongoClient } from 'mongodb';
-import { Job, Applicant, User } from './index';
+import { Job, Applicant } from './index';
+import { UserWithPassword } from './user';
 
 export interface DatabaseCollections {
   jobs: Collection<Job>;
   applicants: Collection<Applicant>;
-  user: Collection<User & { password: string }>;
+  user: Collection<UserWithPassword>;
   pipeline: Collection<{ pipeline: string[] }>;
 }
 

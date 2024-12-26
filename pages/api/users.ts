@@ -3,16 +3,12 @@ import { MongoClient } from 'mongodb';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
-import { User } from '@/types';
+import { UserWithPassword } from '@/types/user';
 
 interface CreateUserResponse {
   token?: string;
   error?: boolean;
   message?: string;
-}
-
-interface UserDocument extends User {
-  password: string;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<CreateUserResponse>) {
@@ -31,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     await client.connect();
     const db = client.db('ATS');
 
-    const existingUser = await db.collection<UserDocument>('user').findOne({ username });
+    const existingUser = await db.collection<UserWithPassword>('user').findOne({ username });
     if (existingUser) {
       return res.status(400).json({ error: true, message: 'Username already exists' });
     }
@@ -39,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     const hashedPassword = await bcrypt.hash(password, 10);
     const userId = uuidv4();
 
-    await db.collection<UserDocument>('user').insertOne({
+    await db.collection<UserWithPassword>('user').insertOne({
       userId,
       username,
       password: hashedPassword

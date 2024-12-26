@@ -21,7 +21,7 @@ function setColor(stage: string): string {
   }
 }
 
-export default function ApplicantView({ data, pipeline }: ApplicantViewProps) {
+export default function ApplicantView({ data }: ApplicantViewProps) {
   const { data: applicants, error } = useSWR<Applicant[]>(
     `/api/jobs/${data}/applicants`
   );

@@ -2,7 +2,7 @@ import { NextApiResponse } from 'next';
 import { ObjectId } from 'mongodb';
 import database from '@/middleware/database';
 import { ApiRequest } from '@/types/api';
-import { Applicant } from '@/types';
+import { Applicant, Job } from '@/types';
 import { DatabaseResponse } from '@/types/database';
 
 export default async function handler(
@@ -56,11 +56,13 @@ export default async function handler(
 
           await req.db.collection<Applicant>('applicants').insertOne(applicant);
 
-          // Update the job listing to include this applicant
-          await req.db.collection('jobs').updateOne(
-            { _id: new ObjectId(data.listing) },
-            { $push: { applicants: applicant._id.toString() } }
-          );
+          // Update job listing with typed collection
+          await req.db
+            .collection<Job>('jobs')
+            .updateOne(
+              { _id: new ObjectId(data.listing) },
+              { $push: { applicants: applicant._id.toString() } }
+            );
 
           res.status(201).json({ 
             success: true, 

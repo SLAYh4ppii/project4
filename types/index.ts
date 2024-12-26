@@ -21,8 +21,3 @@ export interface Applicant {
   rating: number;
   cv: string;
 }
-
-export interface User {
-  userId: string;
-  username: string;
-}
