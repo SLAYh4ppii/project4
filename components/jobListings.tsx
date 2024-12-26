@@ -9,13 +9,14 @@ import {
   Button,
   Row,
   Col,
-  Spin,
+  Modal,
 } from 'antd';
 import styles from '@/styles/ATS.module.css';
 import homeStyle from '@/styles/Home.module.css';
 import { PlusOutlined } from '@ant-design/icons';
 import AddJobModal from './addJobModal';
 import EditJobModal from './editJobModal';
+import ApplicantView from './applicantView';
 import { Job } from '@/types';
 
 const { Content } = Layout;
@@ -25,6 +26,7 @@ export default function JobListings() {
   const [newJobModalVisible, setNewJobModalVisible] = useState(false);
   const [editJobModalVisible, setEditJobModalVisible] = useState(false);
   const [selectedListing, setSelectedListing] = useState<Job | null>(null);
+  const [showApplicants, setShowApplicants] = useState(false);
 
   const { data: jobs, error } = useSWR<Job[]>('/api/jobs', async (url: string) => {
     const res = await fetch(url);
@@ -34,14 +36,10 @@ export default function JobListings() {
     return res.json();
   });
 
+  const { data: pipeline } = useSWR<string[]>('/api/pipeline');
+
   if (error) return <div>Failed to load</div>;
-  if (!jobs) {
-    return (
-      <div className={homeStyle.container}>
-        <Spin size="large" />
-      </div>
-    );
-  }
+  if (!jobs) return null;
 
   return (
     <Layout className={styles.siteLayoutBackground} style={{ paddingTop: 84, minHeight: '100vh' }}>
@@ -53,14 +51,28 @@ export default function JobListings() {
         }}
       />
       {selectedListing && (
-        <EditJobModal
-          data={selectedListing}
-          visible={editJobModalVisible}
-          close={() => {
-            mutate('/api/jobs');
-            setEditJobModalVisible(false);
-          }}
-        />
+        <>
+          <EditJobModal
+            data={selectedListing}
+            visible={editJobModalVisible}
+            close={() => {
+              mutate('/api/jobs');
+              setEditJobModalVisible(false);
+            }}
+          />
+          <Modal
+            open={showApplicants}
+            title={`Applicants for ${selectedListing.title}`}
+            onCancel={() => setShowApplicants(false)}
+            width={1000}
+            footer={null}
+          >
+            <ApplicantView 
+              data={selectedListing._id.toString()}
+              pipeline={pipeline || ['Applied', 'Interview', 'Offer', 'Rejected']}
+            />
+          </Modal>
+        </>
       )}
       <Content style={{ padding: '0 24px', minHeight: '76vh' }}>
         <Row align="middle">
@@ -96,11 +108,31 @@ export default function JobListings() {
             <List.Item>
               <Card
                 hoverable
-                onClick={() => {
-                  setSelectedListing(item);
-                  setEditJobModalVisible(true);
-                }}
                 title={item.title}
+                actions={[
+                  <Button 
+                    key="edit" 
+                    type="link" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedListing(item);
+                      setEditJobModalVisible(true);
+                    }}
+                  >
+                    Edit
+                  </Button>,
+                  <Button 
+                    key="applicants" 
+                    type="link"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedListing(item);
+                      setShowApplicants(true);
+                    }}
+                  >
+                    View Applicants
+                  </Button>
+                ]}
               >
                 {item.description.length <= 88
                   ? item.description

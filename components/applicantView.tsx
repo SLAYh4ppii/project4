@@ -1,127 +1,116 @@
-import React, { useState } from 'react';
-import useSWR, { mutate } from 'swr';
-import { List, Spin, Card, Tag, Row, Col, Rate, Empty, message } from 'antd';
-import ViewApplicantModal from './viewApplicantModal';
+import React from 'react';
+import useSWR from 'swr';
+import { List, Card, Tag, Rate, Button, Typography, Space, Descriptions } from 'antd';
+import { DownloadOutlined, MailOutlined, PhoneOutlined, LinkedinOutlined, GlobalOutlined } from '@ant-design/icons';
 import { Applicant } from '@/types';
+
+const { Text } = Typography;
 
 interface ApplicantViewProps {
   data: string;
   pipeline: string[];
 }
 
-export default function ApplicantView({ data, pipeline }: ApplicantViewProps) {
-  const [modalVisible, setModalVisible] = useState(false);
-  const [applicantData, setApplicantData] = useState<Applicant | null>(null);
+function setColor(stage: string): string {
+  switch (stage) {
+    case 'Applied': return 'blue';
+    case 'Interview': return 'gold';
+    case 'Offer': return 'green';
+    case 'Rejected': return 'red';
+    default: return 'default';
+  }
+}
 
-  const { data: applicants, error, isLoading } = useSWR<Applicant[]>(
-    data ? `/api/jobs/${data}/applicants` : null,
-    async (url) => {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Failed to fetch applicants');
-      }
-      return response.json();
-    }
+export default function ApplicantView({ data, pipeline }: ApplicantViewProps) {
+  const { data: applicants, error } = useSWR<Applicant[]>(
+    `/api/jobs/${data}/applicants`
   );
 
-  function setColor(stage: string): string {
-    switch (stage) {
-      case 'Applied':
-        return 'magenta';
-      case 'Interview':
-        return 'gold';
-      case 'Offer':
-        return 'green';
-      case 'Rejected':
-        return 'red';
-      default:
-        return 'blue';
+  if (error) return <div>Failed to load applicants</div>;
+  if (!applicants) return <div>Loading...</div>;
+  if (applicants.length === 0) return <div>No applications yet</div>;
+
+  const handleDownloadCV = async (cvFileName: string) => {
+    try {
+      const response = await fetch(`/api/cv/${cvFileName}`);
+      if (!response.ok) throw new Error('Failed to download CV');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `CV-${cvFileName}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading CV:', error);
     }
-  }
-
-  if (error) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center' }}>
-        <Empty
-          description="Failed to load applicants. Please try again later."
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-        />
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: '2rem'
-      }}>
-        <Spin size="large" />
-      </div>
-    );
-  }
-
-  if (!applicants || applicants.length === 0) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: '2rem'
-      }}>
-        <Empty description="No applications yet" />
-      </div>
-    );
-  }
+  };
 
   return (
-    <div>
-      {applicantData && modalVisible && (
-        <ViewApplicantModal
-          visible={modalVisible}
-          data={applicantData}
-          close={() => {
-            mutate(`/api/jobs/${data}/applicants`);
-            setModalVisible(false);
-          }}
-          pipeline={pipeline}
-        />
-      )}
-      <List
-        split={false}
-        itemLayout="horizontal"
-        dataSource={applicants}
-        renderItem={(item) => (
-          <List.Item>
-            <Card
-              hoverable
-              style={{ width: '100%' }}
-              bodyStyle={{ padding: '1rem' }}
-              onClick={() => {
-                setApplicantData(item);
-                setModalVisible(true);
-              }}
+    <List
+      dataSource={applicants}
+      renderItem={(applicant) => (
+        <Card 
+          style={{ marginBottom: 16 }}
+          title={
+            <Space size="large">
+              <Text strong>{applicant.name}</Text>
+              <Tag color={setColor(applicant.stage)}>{applicant.stage}</Tag>
+              <Rate value={applicant.rating} disabled />
+            </Space>
+          }
+          extra={
+            <Button 
+              icon={<DownloadOutlined />}
+              onClick={() => handleDownloadCV(applicant.cv)}
             >
-              <Row>
-                <Col span={4} style={{ display: 'flex', alignItems: 'center' }}>
-                  {item.name}
-                </Col>
-                <Col span={4} style={{ display: 'flex', alignItems: 'center' }}>
-                  <Tag color={setColor(item.stage)}>{item.stage}</Tag>
-                </Col>
-                <Col span={4} style={{ display: 'flex', alignItems: 'center' }}>
-                  <Rate value={item.rating} disabled />
-                </Col>
-                <Col span={12} style={{ display: 'flex', alignItems: 'center' }}>
-                  {item.introduction || 'No introduction provided'}
-                </Col>
-              </Row>
-            </Card>
-          </List.Item>
-        )}
-      />
-    </div>
+              Download CV
+            </Button>
+          }
+        >
+          <Descriptions column={2}>
+            <Descriptions.Item label={<><MailOutlined /> Email</>}>
+              <a href={`mailto:${applicant.email}`}>{applicant.email}</a>
+            </Descriptions.Item>
+            {applicant.phone && (
+              <Descriptions.Item label={<><PhoneOutlined /> Phone</>}>
+                <a href={`tel:${applicant.phone}`}>{applicant.phone}</a>
+              </Descriptions.Item>
+            )}
+            {applicant.linkedin && (
+              <Descriptions.Item label={<><LinkedinOutlined /> LinkedIn</>}>
+                <a href={applicant.linkedin} target="_blank" rel="noopener noreferrer">
+                  Profile
+                </a>
+              </Descriptions.Item>
+            )}
+            {applicant.website && (
+              <Descriptions.Item label={<><GlobalOutlined /> Website</>}>
+                <a href={applicant.website} target="_blank" rel="noopener noreferrer">
+                  Website
+                </a>
+              </Descriptions.Item>
+            )}
+          </Descriptions>
+          
+          {applicant.introduction && (
+            <div style={{ marginTop: 16 }}>
+              <Text strong>Introduction:</Text>
+              <p>{applicant.introduction}</p>
+            </div>
+          )}
+          
+          {applicant.notes && (
+            <div style={{ marginTop: 16 }}>
+              <Text strong>Notes:</Text>
+              <p>{applicant.notes}</p>
+            </div>
+          )}
+        </Card>
+      )}
+    />
   );
 }

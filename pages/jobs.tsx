@@ -24,7 +24,7 @@ function Jobs({ jobs }: JobsProps) {
             <Divider />
             <List
               className={listingStyles.list}
-              dataSource={jobs}
+              dataSource={jobs || []}
               renderItem={(item) => (
                 <List.Item
                   actions={[
@@ -62,12 +62,13 @@ export async function getServerSideProps() {
   const url = process.env.URL || 'http://localhost:3000';
   
   try {
-    const res = await fetch(`${url}api/jobs`);
+    const res = await fetch(`${url}/api/jobs`);
     const jobs = await res.json();
     return {
       props: { jobs },
     };
   } catch (error) {
+    console.error('Failed to fetch jobs:', error);
     return {
       props: {
         jobs: [],
