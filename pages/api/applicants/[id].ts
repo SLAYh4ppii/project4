@@ -15,7 +15,7 @@ export default async function handler(
 
   const { id } = req.query;
 
-  if (!id || typeof id !== 'string') {
+  if (!id || typeof id !== 'string' || !ObjectId.isValid(id)) {
     res.status(400).json({ error: 'Invalid ID' });
     return;
   }

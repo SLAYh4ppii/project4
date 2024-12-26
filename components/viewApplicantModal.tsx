@@ -15,7 +15,7 @@ export default function ViewApplicantModal({ visible, data, close, pipeline }: V
 
   useEffect(() => {
     form.setFieldsValue({
-      id: data._id,
+      id: data._id.toString(), // Convert ObjectId to string
       stage: data.stage,
       notes: data.notes,
       rating: data.rating,

@@ -1,5 +1,7 @@
+import { ObjectId } from 'mongodb';
+
 export interface Job {
-  _id: string;
+  _id: ObjectId;
   title: string;
   location: string;
   description: string;
@@ -7,7 +9,7 @@ export interface Job {
 }
 
 export interface Applicant {
-  _id: string;
+  _id: ObjectId;
   name: string;
   email: string;
   phone?: string;

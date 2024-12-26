@@ -28,7 +28,10 @@ function Jobs({ jobs }: JobsProps) {
               renderItem={(item) => (
                 <List.Item
                   actions={[
-                    <Link key={item._id} href={`/jobs/${item._id}`}>
+                    <Link 
+                      key={item._id.toString()} 
+                      href={`/jobs/${item._id.toString()}`}
+                    >
                       Apply
                     </Link>,
                   ]}
@@ -67,7 +70,7 @@ export async function getServerSideProps() {
   } catch (error) {
     return {
       props: {
-        jobs: [{}],
+        jobs: [],
       },
     };
   }

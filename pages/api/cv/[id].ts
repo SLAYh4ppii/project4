@@ -34,20 +34,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Stream file to response
     await streamFileToResponse(filePath, validation.fileId, stats, res);
     console.log('[CV Download API] ====== End Request Success ======\n');
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('[CV Download API] ====== Error ======');
     console.error('[CV Download API] Error details:', error);
     console.error('[CV Download API] Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
     
     if (!res.headersSent) {
-      if (error.message === 'Invalid file ID' || error.message === 'Invalid file ID format') {
-        res.status(400).json({ error: error.message });
-      } else if (error.code === 'ENOENT') {
-        res.status(404).json({ error: 'CV not found' });
+      if (error instanceof Error) {
+        if (error.message === 'Invalid file ID' || error.message === 'Invalid file ID format') {
+          res.status(400).json({ error: error.message });
+        } else if ('code' in error && error.code === 'ENOENT') {
+          res.status(404).json({ error: 'CV not found' });
+        } else {
+          res.status(500).json({ 
+            error: 'Failed to fetch CV',
+            details: error.message
+          });
+        }
       } else {
         res.status(500).json({ 
           error: 'Failed to fetch CV',
-          details: error instanceof Error ? error.message : 'Unknown error'
+          details: 'Unknown error'
         });
       }
     }
