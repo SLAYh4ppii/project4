@@ -6,7 +6,13 @@ import { NextApiResponse } from 'next';
 export const uploadDir = path.join(process.cwd(), 'uploads');
 
 export async function ensureUploadDir() {
-  await fs.mkdir(uploadDir, { recursive: true });
+  try {
+    await fs.mkdir(uploadDir, { recursive: true });
+    console.log('[Files] Upload directory ensured:', uploadDir);
+  } catch (error) {
+    console.error('[Files] Error creating upload directory:', error);
+    throw error;
+  }
 }
 
 export function cleanFileName(fileName: string | string[] | undefined): string {
@@ -17,9 +23,15 @@ export function cleanFileName(fileName: string | string[] | undefined): string {
 }
 
 export async function getFilePath(fileName: string): Promise<{ path: string; stats: fs.Stats }> {
-  const filePath = path.join(uploadDir, fileName);
-  const stats = await fs.stat(filePath);
-  return { path: filePath, stats };
+  try {
+    const filePath = path.join(uploadDir, fileName);
+    console.log('[Files] Checking file:', filePath);
+    const stats = await fs.stat(filePath);
+    return { path: filePath, stats };
+  } catch (error) {
+    console.error('[Files] Error accessing file:', error);
+    throw error;
+  }
 }
 
 export async function streamFileToResponse(
@@ -28,18 +40,41 @@ export async function streamFileToResponse(
   stats: fs.Stats,
   res: NextApiResponse
 ): Promise<void> {
+  console.log('[Files] Starting file stream:', {
+    path: filePath,
+    size: stats.size,
+    filename: fileName
+  });
+
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
   res.setHeader('Content-Length', stats.size);
 
   const fileStream = createReadStream(filePath);
   return new Promise((resolve, reject) => {
-    fileStream.pipe(res)
-      .on('finish', resolve)
-      .on('error', reject);
+    fileStream
+      .on('error', (error) => {
+        console.error('[Files] Stream error:', error);
+        reject(error);
+      })
+      .pipe(res)
+      .on('finish', () => {
+        console.log('[Files] Stream completed successfully');
+        resolve();
+      })
+      .on('error', (error) => {
+        console.error('[Files] Response stream error:', error);
+        reject(error);
+      });
   });
 }
 
 export async function deleteFile(filePath: string): Promise<void> {
-  await fs.unlink(filePath);
+  try {
+    await fs.unlink(filePath);
+    console.log('[Files] File deleted successfully:', filePath);
+  } catch (error) {
+    console.error('[Files] Error deleting file:', error);
+    throw error;
+  }
 }

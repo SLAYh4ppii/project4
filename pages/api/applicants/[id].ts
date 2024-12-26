@@ -1,12 +1,13 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextApiResponse } from 'next';
 import { ObjectId } from 'mongodb';
 import database from '@/middleware/database';
+import { ApiRequest } from '@/types/api';
+import { Applicant } from '@/types';
 
-interface ExtendedRequest extends NextApiRequest {
-  db: any;
-}
-
-export default async function handler(req: ExtendedRequest, res: NextApiResponse) {
+export default async function handler(
+  req: ApiRequest,
+  res: NextApiResponse<Applicant | { error: string }>
+) {
   if (req.method !== 'GET') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
@@ -22,7 +23,7 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
   await database(req, res, async () => {
     try {
       const applicant = await req.db
-        .collection('applicants')
+        .collection<Applicant>('applicants')
         .findOne({ _id: new ObjectId(id) });
       
       if (!applicant) {

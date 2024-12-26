@@ -18,6 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const validation = validateAndSanitizeCVId(req.query.id);
     
     if (!validation.isValid || !validation.fileId) {
+      console.error('[CV Download API] Validation failed:', validation.error);
       throw new Error(validation.error || 'Invalid file ID');
     }
 
@@ -36,6 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error) {
     console.error('[CV Download API] ====== Error ======');
     console.error('[CV Download API] Error details:', error);
+    console.error('[CV Download API] Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
     
     if (!res.headersSent) {
       if (error.message === 'Invalid file ID' || error.message === 'Invalid file ID format') {

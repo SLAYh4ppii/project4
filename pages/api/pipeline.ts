@@ -1,11 +1,12 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextApiResponse } from 'next';
 import database from '@/middleware/database';
+import { ApiRequest } from '@/types/api';
+import { DatabaseConnection } from '@/types/mongodb';
 
-interface ExtendedRequest extends NextApiRequest {
-  db: any;
-}
-
-export default async function handler(req: ExtendedRequest, res: NextApiResponse) {
+export default async function handler(
+  req: ApiRequest & DatabaseConnection,
+  res: NextApiResponse<string[] | { error: string }>
+) {
   if (req.method !== 'GET') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
@@ -14,8 +15,9 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
   await database(req, res, async () => {
     try {
       const doc = await req.db.collection('pipeline').findOne();
-      res.json(doc.pipeline);
+      res.json(doc?.pipeline || []);
     } catch (error) {
+      console.error('Failed to fetch pipeline:', error);
       res.status(500).json({ error: 'Failed to fetch pipeline' });
     }
   });

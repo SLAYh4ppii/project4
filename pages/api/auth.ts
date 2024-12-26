@@ -1,37 +1,20 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextApiResponse } from 'next';
 import { MongoClient } from 'mongodb';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { AuthRequest, AuthResponse } from '@/types/api';
+import { DatabaseConnection } from '@/types/database';
 
 if (!process.env.JWT_SECRET) {
-  throw new Error('JWT_SECRET is not defined in environment variables');
-}
-
-if (!process.env.DB_URL) {
-  throw new Error('DB_URL is not defined in environment variables');
+  throw new Error('JWT_SECRET is not defined');
 }
 
 const jwtSecret = process.env.JWT_SECRET;
-const dbName = 'ATS';
-const client = new MongoClient(process.env.DB_URL);
 
-interface AuthRequest extends NextApiRequest {
-  body: {
-    username: string;
-    password: string;
-  };
-}
-
-function findUser(db: any, username: string): Promise<any> {
-  const collection = db.collection('user');
-  return collection.findOne({ username });
-}
-
-function authUser(password: string, hash: string): Promise<boolean> {
-  return bcrypt.compare(password, hash);
-}
-
-export default async function handler(req: AuthRequest, res: NextApiResponse) {
+export default async function handler(
+  req: AuthRequest & DatabaseConnection,
+  res: NextApiResponse<AuthResponse>
+) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: true, message: 'Method not allowed' });
     return;
@@ -40,22 +23,21 @@ export default async function handler(req: AuthRequest, res: NextApiResponse) {
   const { username, password } = req.body;
 
   if (!username || !password) {
-    res.status(400).json({ error: true, message: 'Missing required fields' });
+    res.status(400).json({ error: true, message: 'Missing credentials' });
     return;
   }
 
   try {
-    await client.connect();
-    const db = client.db(dbName);
-
-    const user = await findUser(db, username);
+    const user = await req.db
+      .collection('user')
+      .findOne({ username });
 
     if (!user) {
       res.status(404).json({ error: true, message: 'User not found' });
       return;
     }
 
-    const match = await authUser(password, user.password);
+    const match = await bcrypt.compare(password, user.password);
 
     if (match) {
       const token = jwt.sign(
@@ -67,9 +49,7 @@ export default async function handler(req: AuthRequest, res: NextApiResponse) {
       res.status(401).json({ error: true, message: 'Auth Failed' });
     }
   } catch (error) {
-    console.error(error);
+    console.error('Auth error:', error);
     res.status(500).json({ error: true, message: 'Internal Server Error' });
-  } finally {
-    await client.close();
   }
 }
