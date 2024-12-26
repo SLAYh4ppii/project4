@@ -1,14 +1,11 @@
 import React, { useState } from 'react';
 import useSWR from 'swr';
-import { List, Card, Tag, Rate, Button, Typography, Space, Descriptions } from 'antd';
-import { DownloadOutlined, MailOutlined, PhoneOutlined, LinkedinOutlined, GlobalOutlined } from '@ant-design/icons';
+import { List } from 'antd';
 import { Applicant } from '@/types';
 import ViewApplicantModal from './viewApplicantModal';
 import { fetcher } from '@/utils/fetcher';
 import { downloadCV } from '@/utils/cv/downloader';
 import { ApplicantCard } from './applicant/ApplicantCard';
-
-const { Text } = Typography;
 
 interface ApplicantViewProps {
   data: string;

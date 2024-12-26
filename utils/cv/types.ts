@@ -16,3 +16,10 @@ export interface CVDownloadResponse {
   error?: string;
   blob?: Blob;
 }
+
+export type CVFileName = string | { cv: string };
+
+export interface CVDownloader {
+  fetchCV(fileName: string): Promise<CVDownloadResponse>;
+  triggerDownload(blob: Blob, fileName: string): void;
+}
