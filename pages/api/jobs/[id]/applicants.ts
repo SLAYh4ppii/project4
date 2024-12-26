@@ -15,7 +15,7 @@ export default async function handler(
 
   const { id } = req.query;
 
-  if (!id || typeof id !== 'string') {
+  if (!id || typeof id !== 'string' || !ObjectId.isValid(id)) {
     res.status(400).json({ error: 'Invalid ID' });
     return;
   }
@@ -27,20 +27,18 @@ export default async function handler(
       });
 
       if (!job) {
-        return res.json([]);
+        res.status(404).json({ error: 'Job not found' });
+        return;
       }
 
-      if (!job.applicants || !Array.isArray(job.applicants) || job.applicants.length === 0) {
-        return res.json([]);
+      if (!job.applicants || !Array.isArray(job.applicants)) {
+        res.json([]);
+        return;
       }
 
       const applicantIds = job.applicants
-        .filter((id: string) => ObjectId.isValid(id))
-        .map((id: string) => new ObjectId(id));
-
-      if (applicantIds.length === 0) {
-        return res.json([]);
-      }
+        .filter(id => ObjectId.isValid(id))
+        .map(id => new ObjectId(id));
 
       const applicants = await req.db.collection<Applicant>('applicants')
         .find({ 
@@ -48,10 +46,10 @@ export default async function handler(
         })
         .toArray();
 
-      return res.json(applicants);
+      res.json(applicants);
     } catch (error) {
       console.error('Error fetching job applicants:', error);
-      return res.status(500).json({ error: 'Failed to fetch applicants' });
+      res.status(500).json({ error: 'Failed to fetch applicants' });
     }
   });
 }

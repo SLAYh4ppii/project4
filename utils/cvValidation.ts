@@ -11,6 +11,7 @@ export function validateCVId(id: unknown): CVValidationResult {
     return { isValid: false, fileId: null, error: 'No file ID provided' };
   }
 
+  // Convert to string if it's not already
   const fileId = String(id).trim();
   
   // Allow any filename with .pdf extension
