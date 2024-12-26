@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import useSWR from 'swr';
-import { List, Card, Tag, Rate, Button, Typography, Space, Descriptions } from 'antd';
+import { List, Card, Tag, Rate, Button, Typography, Space, Descriptions, message } from 'antd';
 import { DownloadOutlined, MailOutlined, PhoneOutlined, LinkedinOutlined, GlobalOutlined } from '@ant-design/icons';
 import { Applicant } from '@/types';
+import ViewApplicantModal from './viewApplicantModal';
 
 const { Text } = Typography;
 
@@ -21,8 +22,9 @@ function setColor(stage: string): string {
   }
 }
 
-export default function ApplicantView({ data }: ApplicantViewProps) {
-  const { data: applicants, error } = useSWR<Applicant[]>(
+export default function ApplicantView({ data, pipeline }: ApplicantViewProps) {
+  const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
+  const { data: applicants, error, mutate } = useSWR<Applicant[]>(
     `/api/jobs/${data}/applicants`
   );
 
@@ -39,78 +41,100 @@ export default function ApplicantView({ data }: ApplicantViewProps) {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `CV-${cvFileName}`;
+      a.download = cvFileName;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
       console.error('Error downloading CV:', error);
+      message.error('Failed to download CV');
     }
   };
 
   return (
-    <List
-      dataSource={applicants}
-      renderItem={(applicant) => (
-        <Card 
-          style={{ marginBottom: 16 }}
-          title={
-            <Space size="large">
-              <Text strong>{applicant.name}</Text>
-              <Tag color={setColor(applicant.stage)}>{applicant.stage}</Tag>
-              <Rate value={applicant.rating} disabled />
-            </Space>
-          }
-          extra={
-            <Button 
-              icon={<DownloadOutlined />}
-              onClick={() => handleDownloadCV(applicant.cv)}
-            >
-              Download CV
-            </Button>
-          }
-        >
-          <Descriptions column={2}>
-            <Descriptions.Item label={<><MailOutlined /> Email</>}>
-              <a href={`mailto:${applicant.email}`}>{applicant.email}</a>
-            </Descriptions.Item>
-            {applicant.phone && (
-              <Descriptions.Item label={<><PhoneOutlined /> Phone</>}>
-                <a href={`tel:${applicant.phone}`}>{applicant.phone}</a>
-              </Descriptions.Item>
-            )}
-            {applicant.linkedin && (
-              <Descriptions.Item label={<><LinkedinOutlined /> LinkedIn</>}>
-                <a href={applicant.linkedin} target="_blank" rel="noopener noreferrer">
-                  Profile
-                </a>
-              </Descriptions.Item>
-            )}
-            {applicant.website && (
-              <Descriptions.Item label={<><GlobalOutlined /> Website</>}>
-                <a href={applicant.website} target="_blank" rel="noopener noreferrer">
-                  Website
-                </a>
-              </Descriptions.Item>
-            )}
-          </Descriptions>
-          
-          {applicant.introduction && (
-            <div style={{ marginTop: 16 }}>
-              <Text strong>Introduction:</Text>
-              <p>{applicant.introduction}</p>
-            </div>
-          )}
-          
-          {applicant.notes && (
-            <div style={{ marginTop: 16 }}>
-              <Text strong>Notes:</Text>
-              <p>{applicant.notes}</p>
-            </div>
-          )}
-        </Card>
+    <>
+      {selectedApplicant && (
+        <ViewApplicantModal
+          visible={!!selectedApplicant}
+          data={selectedApplicant}
+          close={() => {
+            setSelectedApplicant(null);
+            mutate();
+          }}
+          pipeline={pipeline}
+        />
       )}
-    />
+      <List
+        dataSource={applicants}
+        renderItem={(applicant) => (
+          <Card 
+            style={{ marginBottom: 16 }}
+            title={
+              <Space size="large">
+                <Text strong>{applicant.name}</Text>
+                <Tag color={setColor(applicant.stage)}>{applicant.stage}</Tag>
+                <Rate value={applicant.rating} disabled />
+              </Space>
+            }
+            extra={
+              <Space>
+                <Button 
+                  icon={<DownloadOutlined />}
+                  onClick={() => handleDownloadCV(applicant.cv)}
+                >
+                  Download CV
+                </Button>
+                <Button 
+                  type="primary"
+                  onClick={() => setSelectedApplicant(applicant)}
+                >
+                  View Details
+                </Button>
+              </Space>
+            }
+          >
+            <Descriptions column={2}>
+              <Descriptions.Item label={<><MailOutlined /> Email</>}>
+                <a href={`mailto:${applicant.email}`}>{applicant.email}</a>
+              </Descriptions.Item>
+              {applicant.phone && (
+                <Descriptions.Item label={<><PhoneOutlined /> Phone</>}>
+                  <a href={`tel:${applicant.phone}`}>{applicant.phone}</a>
+                </Descriptions.Item>
+              )}
+              {applicant.linkedin && (
+                <Descriptions.Item label={<><LinkedinOutlined /> LinkedIn</>}>
+                  <a href={applicant.linkedin} target="_blank" rel="noopener noreferrer">
+                    Profile
+                  </a>
+                </Descriptions.Item>
+              )}
+              {applicant.website && (
+                <Descriptions.Item label={<><GlobalOutlined /> Website</>}>
+                  <a href={applicant.website} target="_blank" rel="noopener noreferrer">
+                    Website
+                  </a>
+                </Descriptions.Item>
+              )}
+            </Descriptions>
+            
+            {applicant.introduction && (
+              <div style={{ marginTop: 16 }}>
+                <Text strong>Introduction:</Text>
+                <p>{applicant.introduction}</p>
+              </div>
+            )}
+            
+            {applicant.notes && (
+              <div style={{ marginTop: 16 }}>
+                <Text strong>Notes:</Text>
+                <p>{applicant.notes}</p>
+              </div>
+            )}
+          </Card>
+        )}
+      />
+    </>
   );
 }

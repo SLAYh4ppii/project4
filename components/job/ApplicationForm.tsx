@@ -1,5 +1,5 @@
 import { Form, Input, Button, Upload, message } from 'antd';
-import type { UploadFile } from 'antd/es/upload/interface';
+import type { UploadFile, RcFile } from 'antd/es/upload/interface';
 import { useState } from 'react';
 
 interface ApplicationFormProps {
@@ -20,6 +20,18 @@ export default function ApplicationForm({ jobId }: ApplicationFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form] = Form.useForm();
 
+  const beforeUpload = (file: RcFile) => {
+    const isPDF = file.type === 'application/pdf';
+    if (!isPDF) {
+      message.error('You can only upload PDF files!');
+    }
+    const isLt10M = file.size / 1024 / 1024 < 10;
+    if (!isLt10M) {
+      message.error('File must be smaller than 10MB!');
+    }
+    return isPDF && isLt10M;
+  };
+
   const handleSubmit = async (values: JobApplication) => {
     try {
       setIsSubmitting(true);
@@ -39,7 +51,7 @@ export default function ApplicationForm({ jobId }: ApplicationFormProps) {
         }
         
         const uploadData = await uploadResponse.json();
-        cvFileName = uploadData.message;
+        cvFileName = uploadData.filename;
       }
 
       const applicationData = {
@@ -104,10 +116,37 @@ export default function ApplicationForm({ jobId }: ApplicationFormProps) {
         <Upload
           accept=".pdf"
           maxCount={1}
-          beforeUpload={() => false}
+          beforeUpload={beforeUpload}
         >
-          <Button>Upload CV</Button>
+          <Button>Upload CV (PDF only, max 10MB)</Button>
         </Upload>
+      </Form.Item>
+      <Form.Item
+        name="phone"
+        label="Phone Number"
+      >
+        <Input />
+      </Form.Item>
+      <Form.Item
+        name="linkedin"
+        label="LinkedIn URL"
+        rules={[{ type: 'url', message: 'Please enter a valid URL' }]}
+      >
+        <Input />
+      </Form.Item>
+      <Form.Item
+        name="website"
+        label="Personal Website"
+        rules={[{ type: 'url', message: 'Please enter a valid URL' }]}
+      >
+        <Input />
+      </Form.Item>
+      <Form.Item
+        name="introduction"
+        label="Short Introduction"
+        rules={[{ max: 300, message: 'Maximum 300 characters' }]}
+      >
+        <Input.TextArea rows={4} />
       </Form.Item>
       <Form.Item>
         <Button 

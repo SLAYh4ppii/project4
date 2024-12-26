@@ -7,7 +7,11 @@ import { NextApiResponse } from 'next';
 export const uploadDir = path.join(process.cwd(), 'uploads');
 
 export async function ensureUploadDir() {
-  await fs.mkdir(uploadDir, { recursive: true });
+  try {
+    await fs.access(uploadDir);
+  } catch {
+    await fs.mkdir(uploadDir, { recursive: true });
+  }
 }
 
 export async function getFilePath(fileName: string): Promise<{ path: string; stats: Stats }> {
@@ -32,6 +36,9 @@ export async function streamFileToResponse(
     fileStream
       .pipe(res)
       .on('finish', resolve)
-      .on('error', reject);
+      .on('error', (error) => {
+        console.error('Stream error:', error);
+        reject(error);
+      });
   });
 }

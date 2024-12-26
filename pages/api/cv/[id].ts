@@ -4,16 +4,14 @@ import { getFilePath, streamFileToResponse } from '@/utils/files';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
     const validation = validateCVId(req.query.id);
     
     if (!validation.isValid || !validation.fileId) {
-      res.status(400).json({ error: validation.error });
-      return;
+      return res.status(400).json({ error: validation.error });
     }
 
     const { path: filePath, stats } = await getFilePath(validation.fileId);
